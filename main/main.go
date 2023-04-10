@@ -4,21 +4,18 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gophercises/urlshort"
+	urlshort "github.com/barisbll/gophercises-urlshort"
 )
 
 func main() {
 	mux := defaultMux()
 
-	// Build the MapHandler using the mux as the fallback
 	pathsToUrls := map[string]string{
 		"/urlshort-godoc": "https://godoc.org/github.com/gophercises/urlshort",
 		"/yaml-godoc":     "https://godoc.org/gopkg.in/yaml.v2",
 	}
 	mapHandler := urlshort.MapHandler(pathsToUrls, mux)
 
-	// Build the YAMLHandler using the mapHandler as the
-	// fallback
 	yaml := `
 - path: /urlshort
   url: https://github.com/gophercises/urlshort

@@ -2,36 +2,57 @@ package urlshort
 
 import (
 	"net/http"
+
+	"gopkg.in/yaml.v3"
 )
 
-// MapHandler will return an http.HandlerFunc (which also
-// implements http.Handler) that will attempt to map any
-// paths (keys in the map) to their corresponding URL (values
-// that each key in the map points to, in string format).
-// If the path is not provided in the map, then the fallback
-// http.Handler will be called instead.
-func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.HandlerFunc {
-	//	TODO: Implement this...
-	return nil
+func contains(m map[string]string, str string) bool {
+	for k, _ := range m {
+		if k == str {
+			return true
+		}
+	}
+
+	return false
 }
 
-// YAMLHandler will parse the provided YAML and then return
-// an http.HandlerFunc (which also implements http.Handler)
-// that will attempt to map any paths to their corresponding
-// URL. If the path is not provided in the YAML, then the
-// fallback http.Handler will be called instead.
-//
-// YAML is expected to be in the format:
-//
-//     - path: /some-path
-//       url: https://www.some-url.com/demo
-//
-// The only errors that can be returned all related to having
-// invalid YAML data.
-//
-// See MapHandler to create a similar http.HandlerFunc via
-// a mapping of paths to urls.
+func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if contains(pathsToUrls, r.URL.Path) {
+			http.Redirect(w, r, pathsToUrls[r.URL.Path], http.StatusSeeOther)
+		}
+		fallback.ServeHTTP(w, r)
+	}
+}
+
+type Yaml struct {
+	Path string `yaml:"path"`
+	URL  string `yaml:"url"`
+}
+
+func containsYaml(v []Yaml, str string) string {
+	for _, v := range v {
+		if v.Path == str {
+			return v.URL
+		}
+	}
+
+	return ""
+}
+
 func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
-	// TODO: Implement this...
-	return nil, nil
+	var values []Yaml
+
+	err := yaml.Unmarshal(yml, &values)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		yamlUrl := containsYaml(values, r.URL.Path)
+		if len(yamlUrl) > 0 {
+			http.Redirect(w, r, yamlUrl, http.StatusSeeOther)
+		}
+		fallback.ServeHTTP(w, r)
+	}, nil
 }
